@@ -27,3 +27,9 @@ product_categories <- separated_product_info %>% mutate(category = case_when(.$p
 complete_address <- product_categories %>% unite(full_address, address:country, sep = ", ")
 
 #Step Five: Create dummy variables for company and product category
+
+dummy_var <- complete_address %>% mutate(company = paste0("company_", company), category = paste0("product_", category)) %>% mutate(company_binary = 1, product_binary = 1) %>% spread(company, company_binary, fill = 0) %>% spread(category, product_binary, fill = 0)
+
+#Step Six: Publish code
+
+write.csv(dummy_var, "refine_clean.csv")
