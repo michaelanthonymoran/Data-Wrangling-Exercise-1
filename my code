@@ -1,0 +1,142 @@
+Data Wrangling Exercise 1
+Michael Moran
+
+July 11, 2017
+
+Data-Wrangling-Exercise-1
+Step Zero: Load the data into RStudio
+library(dplyr)
+## 
+## Attaching package: 'dplyr'
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+library(readr)
+library(tidyr)
+
+refine_original <- read_csv("~/Foundations of Data Science/refine_original.csv")
+## Parsed with column specification:
+## cols(
+##   company = col_character(),
+##   `Product code / number` = col_character(),
+##   address = col_character(),
+##   city = col_character(),
+##   country = col_character(),
+##   name = col_character()
+## )
+tbl_df(refine_original)
+## # A tibble: 25 x 6
+##     company `Product code / number`             address   city
+##       <chr>                   <chr>               <chr>  <chr>
+##  1 Phillips                     p-5 Groningensingel 147 arnhem
+##  2 phillips                    p-43 Groningensingel 148 arnhem
+##  3  philips                     x-3 Groningensingel 149 arnhem
+##  4  phllips                    x-34 Groningensingel 150 arnhem
+##  5  phillps                    x-12 Groningensingel 151 arnhem
+##  6 phillipS                    p-23 Groningensingel 152 arnhem
+##  7     akzo                    v-43   Leeuwardenweg 178 arnhem
+##  8     Akzo                    v-12   Leeuwardenweg 179 arnhem
+##  9     AKZO                     x-5   Leeuwardenweg 180 arnhem
+## 10     akz0                    p-34   Leeuwardenweg 181 arnhem
+## # ... with 15 more rows, and 2 more variables: country <chr>, name <chr>
+Step One: Clean up the brand names
+cleaned_company <- refine_original %>% mutate(company = tolower(company)) %>% mutate(company = case_when(.$company %in% c('phillips', 'phillps', 'phllps', 'fillips', 'phlips') ~ 'philips', .$company %in% c('akz0', 'ak zo') ~ 'akzo', .$company %in% c('unilver') ~ 'unilever', TRUE ~ .$company))
+
+tbl_df(cleaned_company)
+## # A tibble: 25 x 6
+##    company `Product code / number`             address   city
+##      <chr>                   <chr>               <chr>  <chr>
+##  1 philips                     p-5 Groningensingel 147 arnhem
+##  2 philips                    p-43 Groningensingel 148 arnhem
+##  3 philips                     x-3 Groningensingel 149 arnhem
+##  4 phllips                    x-34 Groningensingel 150 arnhem
+##  5 philips                    x-12 Groningensingel 151 arnhem
+##  6 philips                    p-23 Groningensingel 152 arnhem
+##  7    akzo                    v-43   Leeuwardenweg 178 arnhem
+##  8    akzo                    v-12   Leeuwardenweg 179 arnhem
+##  9    akzo                     x-5   Leeuwardenweg 180 arnhem
+## 10    akzo                    p-34   Leeuwardenweg 181 arnhem
+## # ... with 15 more rows, and 2 more variables: country <chr>, name <chr>
+Step Two: Separate product code and number
+separated_product_info <- cleaned_company %>% separate('Product code / number', c("product_code", "product_number"), sep = '-', remove = TRUE)
+
+tbl_df(separated_product_info)
+## # A tibble: 25 x 7
+##    company product_code product_number             address   city
+##  *   <chr>        <chr>          <chr>               <chr>  <chr>
+##  1 philips            p              5 Groningensingel 147 arnhem
+##  2 philips            p             43 Groningensingel 148 arnhem
+##  3 philips            x              3 Groningensingel 149 arnhem
+##  4 phllips            x             34 Groningensingel 150 arnhem
+##  5 philips            x             12 Groningensingel 151 arnhem
+##  6 philips            p             23 Groningensingel 152 arnhem
+##  7    akzo            v             43   Leeuwardenweg 178 arnhem
+##  8    akzo            v             12   Leeuwardenweg 179 arnhem
+##  9    akzo            x              5   Leeuwardenweg 180 arnhem
+## 10    akzo            p             34   Leeuwardenweg 181 arnhem
+## # ... with 15 more rows, and 2 more variables: country <chr>, name <chr>
+Step Three: Add product categories
+product_categories <- separated_product_info %>% mutate(category = case_when(.$product_code == c('p') ~ 'Smartphone', .$product_code == c('q') ~ 'Tablet', .$product_code == c('v') ~ 'TV', .$product_code == c('x') ~ 'Laptop', TRUE ~ .$product_code))
+
+tbl_df(product_categories)
+## # A tibble: 25 x 8
+##    company product_code product_number             address   city
+##      <chr>        <chr>          <chr>               <chr>  <chr>
+##  1 philips            p              5 Groningensingel 147 arnhem
+##  2 philips            p             43 Groningensingel 148 arnhem
+##  3 philips            x              3 Groningensingel 149 arnhem
+##  4 phllips            x             34 Groningensingel 150 arnhem
+##  5 philips            x             12 Groningensingel 151 arnhem
+##  6 philips            p             23 Groningensingel 152 arnhem
+##  7    akzo            v             43   Leeuwardenweg 178 arnhem
+##  8    akzo            v             12   Leeuwardenweg 179 arnhem
+##  9    akzo            x              5   Leeuwardenweg 180 arnhem
+## 10    akzo            p             34   Leeuwardenweg 181 arnhem
+## # ... with 15 more rows, and 3 more variables: country <chr>, name <chr>,
+## #   category <chr>
+Step Four: Add full address for geocoding
+complete_address <- product_categories %>% unite(full_address, address:country, sep = ", ")
+
+tbl_df(complete_address)
+## # A tibble: 25 x 6
+##    company product_code product_number
+##  *   <chr>        <chr>          <chr>
+##  1 philips            p              5
+##  2 philips            p             43
+##  3 philips            x              3
+##  4 phllips            x             34
+##  5 philips            x             12
+##  6 philips            p             23
+##  7    akzo            v             43
+##  8    akzo            v             12
+##  9    akzo            x              5
+## 10    akzo            p             34
+## # ... with 15 more rows, and 3 more variables: full_address <chr>,
+## #   name <chr>, category <chr>
+Step Five: Create dummy variables for company and product category
+dummy_var <- complete_address %>% mutate(company = paste0("company_", company), category = paste0("product_", category)) %>% mutate(company_binary = 1, product_binary = 1) %>% spread(company, company_binary, fill = 0) %>% spread(category, product_binary, fill = 0)
+
+tbl_df(dummy_var)
+## # A tibble: 25 x 13
+##    product_code product_number
+##  *        <chr>          <chr>
+##  1            p             23
+##  2            p             23
+##  3            p             34
+##  4            p             43
+##  5            p              5
+##  6            p             56
+##  7            q              4
+##  8            q              5
+##  9            q              6
+## 10            q              8
+## # ... with 15 more rows, and 11 more variables: full_address <chr>,
+## #   name <chr>, company_akzo <dbl>, company_philips <dbl>,
+## #   company_phllips <dbl>, company_unilever <dbl>, `company_van
+## #   houten` <dbl>, product_Laptop <dbl>, product_Smartphone <dbl>,
+## #   product_Tablet <dbl>, product_TV <dbl>
+Step Six: Publish code
+write.csv(dummy_var, "refine_clean.csv")
